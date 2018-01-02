@@ -12,7 +12,7 @@ contract EURToken is StandardToken {
 
     function EURToken(address _owner) {
         isEURToken = true;
-	totalSupply = 1000000000;
+	totalSupply = 1000000000 * (10 ** decimals);
 	balances[_owner] = totalSupply;
     }
 

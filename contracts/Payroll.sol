@@ -19,6 +19,8 @@ contract Payroll is Ownable {
 
   event ReceivedTokens(address _from, uint256 _value, bytes _data);
 
+  uint256 EURPrecision;
+
   struct Employee {
     address account;
     uint256 yearlySalary;
@@ -61,10 +63,12 @@ contract Payroll is Ownable {
     oracle = _oracle;
     token = _token;
     payrollTokens.push(token);
+    uint256 dec = token.decimals();
+    EURPrecision = 10 ** dec;
   }
 
   function addEmployee(address accountAddress, address[] allowedTokens, uint256 initialYearlyEURSalary) public onlyOwner {
-    uint256 initialMonthlyEURSalary = initialYearlyEURSalary.div(12);
+    uint256 initialMonthlyEURSalary = initialYearlyEURSalary.mul(EURPrecision).div(12);
     require(addressToId[accountAddress] == 0);
     employees[employeeIds] = Employee(accountAddress, initialYearlyEURSalary, employeeIds, initialMonthlyEURSalary, allowedTokens, now);
     for (uint256 i = 0; i < allowedTokens.length; i++) {
@@ -80,7 +84,7 @@ contract Payroll is Ownable {
   function setEmployeeSalary(uint256 employeeId, uint256 yearlyEURSalary) public onlyOwner {
     //check that it exists first
     employees[employeeId].yearlySalary = yearlyEURSalary;
-    uint256 monthlyEURSalary = yearlyEURSalary.div(12);
+    uint256 monthlyEURSalary = yearlyEURSalary.mul(EURPrecision).div(12);
     employees[employeeId].monthlySalary = monthlyEURSalary;
   }
 

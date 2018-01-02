@@ -2,6 +2,7 @@
 
 let EURToken = artifacts.require("./EURToken.sol");
 let Payroll = artifacts.require("./Payroll.sol");
+let BigNumber = require('bignumber.js');
 
 let EURInstance, PayrollInstance;
 
@@ -59,9 +60,10 @@ contract("Payroll", function (accounts) {
     it(`Should add accounts[1] as an employee`, function () {
 	let expectedEmployees = 1;
 	let expectedID = 1;
-	let yearlySalary = 200000;
-	// will round down due to uint256
-	let monthlySalary = 16666;
+	let precision = new BigNumber(1000000000000000000);
+	let yearlySalary = new BigNumber("240000");
+	// will round down due to uint256	
+	let monthlySalary = yearlySalary.mul(precision).div(12);
         return PayrollInstance.addEmployee(accounts[1], [EURInstance.address], yearlySalary).then(function (returnValue) {
 		return PayrollInstance.getEmployeeCount.call();
             }).then((returnValue) => {
@@ -71,33 +73,35 @@ contract("Payroll", function (accounts) {
 	    assert.equal(returnValue.valueOf(), expectedID);
 		return PayrollInstance.employees.call(expectedID);
             }).then((result) => {
-	    assert.equal(result[0], accounts[1]);
-	    assert.equal(result[1], yearlySalary);
-	    assert.equal(result[2], expectedID);
-	    assert.equal(result[3], monthlySalary);
+		    assert.equal(result[0].valueOf(), accounts[1]);
+		    assert.equal(result[1].valueOf(), yearlySalary);
+		    assert.equal(result[2].valueOf(), expectedID);
+		    assert.equal(result[3].valueOf(), monthlySalary.valueOf());
         });
     });
 
     it(`Should set employee salary`, function () {
         let employeeID = 1;
-	let yearlySalary = 240000;
-	let monthlySalary = 20000;
+	let precision = new BigNumber(1000000000000000000);
+	let yearlySalary = new BigNumber("240000");
+	let monthlySalary = yearlySalary.mul(precision).div(12);
         return PayrollInstance.setEmployeeSalary(employeeID, yearlySalary).then(function (returnValue) {
 		return PayrollInstance.employees.call(employeeID);
             }).then((result) => {
 	    assert.equal(result[0], accounts[1]);
-	    assert.equal(result[1], yearlySalary);
+	    assert.equal(result[1].valueOf(), yearlySalary.valueOf());
 	    assert.equal(result[2], employeeID);
-	    assert.equal(result[3], monthlySalary);
+	    assert.equal(result[3].valueOf(), monthlySalary.valueOf());
         });
     });
 
     it(`Should add accounts[2] as an employee and then delete accounts[2]`, function () {
 	let expectedEmployees = 2;
 	let expectedID = 2;
-	let yearlySalary = 240000;
+	let precision = new BigNumber(1000000000000000000);
+	let yearlySalary = new BigNumber("240000");
 	// will round down due to uint256
-	let monthlySalary = 20000;
+	let monthlySalary = yearlySalary.mul(precision).div(12);
         return PayrollInstance.addEmployee(accounts[2], [EURInstance.address], yearlySalary).then(function (returnValue) {
 		return PayrollInstance.getEmployeeCount.call();
             }).then((returnValue) => {
@@ -108,9 +112,9 @@ contract("Payroll", function (accounts) {
 		return PayrollInstance.employees.call(expectedID);
             }).then((result) => {
 	    assert.equal(result[0], accounts[2]);
-	    assert.equal(result[1], yearlySalary);
+	    assert.equal(result[1].valueOf(), yearlySalary.valueOf());
 	    assert.equal(result[2], expectedID);
-	    assert.equal(result[3], monthlySalary);
+	    assert.equal(result[3].valueOf(), monthlySalary.valueOf());
 		return PayrollInstance.removeEmployee(expectedID);
             }).then((result) => {
 		return PayrollInstance.addressToId.call(expectedID);
@@ -120,7 +124,8 @@ contract("Payroll", function (accounts) {
     });
 
     it(`Should transfer an amount of tokens to Payroll contract`, function () {
-	let amt = 100000
+	let precision = new BigNumber(1000000000000000000);
+	let amt = new BigNumber("100000").mul(precision);
         return EURInstance.transfer(PayrollInstance.address, amt).then(function (returnValue) {
 		return EURInstance.balanceOf.call(PayrollInstance.address);
             }).then((returnValue) => {
@@ -139,6 +144,7 @@ contract("Payroll", function (accounts) {
 
     it(`Should determine allocation of salary tokens`, function () {
         let exchangeRate = 10 ** 18;
+	let precision = new BigNumber(1000000000000000000);
         return PayrollInstance.determineAllocation([EURInstance.address], [100], {from:accounts[1]}).then(function (returnValue) {
 		return PayrollInstance.setExchangeRate(EURInstance.address, exchangeRate);
             }).then((returnValue) => {
@@ -151,11 +157,9 @@ contract("Payroll", function (accounts) {
 		web3.currentProvider.send({jsonrpc: "2.0", method: "evm_mine", params: [], id: 0});  
 		return PayrollInstance.payday({from:accounts[1]});
 	    }).then((returnValue) => {
-		    console.log(accounts[1]);
 		return EURInstance.balanceOf.call(accounts[1]);
 		}).then((returnValue) => {
-		    console.log(returnValue);
-		assert.equal(returnValue.valueOf(), 20000);
+		assert.equal(returnValue.valueOf(), 20000 * precision);
         });
     });
 
